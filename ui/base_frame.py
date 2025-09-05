@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
-import numpy as np
+from tkinter import Image, filedialog, messagebox, ttk
 import imageio.v3 as iio
+from matplotlib import image
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
+import numpy as np
 
 
 class TPBaseFrame(ttk.Frame):
@@ -11,13 +12,19 @@ class TPBaseFrame(ttk.Frame):
 
     def __init__(self, parent):
         super().__init__(parent, padding="10")
+        self.control_frame = ttk.Frame(self)
+        self.control_frame.pack(side="left", fill="y", padx=5, pady=5)
 
+        #Frame para mostrar la imagen
+        self.image_label = ttk.Label(self)
+        self.image_label.pack(side="right", expand=True)
+
+        #crear los widgets
+        self._create_widgets()
         self.image_np = None
         self.original_image_np = None
         self.fig = Figure(figsize=(6, 5), dpi=100)
         self.ax = self.fig.add_subplot(111)
-
-        self._create_widgets()
         self._setup_matplotlib_canvas()
 
     def _create_widgets(self):
@@ -30,22 +37,7 @@ class TPBaseFrame(ttk.Frame):
 
         ttk.Separator(control_frame, orient='horizontal').pack(fill='x', pady=10)
 
-        # Modificación de píxeles
-        pixel_frame = ttk.LabelFrame(control_frame, text="Modificar Píxel", padding="10")
-        pixel_frame.pack(pady=10, fill=tk.X)
-
-        labels = ["X:", "Y:", "R (0-255):", "G (0-255):", "B (0-255):"]
-        self.entries = []
-        for i, lbl in enumerate(labels):
-            ttk.Label(pixel_frame, text=lbl).grid(row=i, column=0, sticky="w", pady=2)
-            entry = ttk.Entry(pixel_frame)
-            entry.grid(row=i, column=1, sticky="ew", pady=2)
-            self.entries.append(entry)
-
-        ttk.Button(pixel_frame, text="Aplicar Píxel", command=self._apply_pixel_modification).grid(row=5, columnspan=2, pady=5, sticky="ew")
-
-        ttk.Separator(control_frame, orient='horizontal').pack(fill='x', pady=10)
-
+        
         # Botones de efectos
         ttk.Button(control_frame, text="Invertir Colores", command=self.invertir_colores).pack(pady=5, fill=tk.X)
         ttk.Button(control_frame, text="Mostrar Histograma", command=self.mostrar_histograma).pack(pady=5, fill=tk.X)
@@ -66,17 +58,23 @@ class TPBaseFrame(ttk.Frame):
         self.toolbar.update()
         self.canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
-    def _update_image_display(self):
-        self.ax.clear()
-        if self.image_np is not None:
-            self.ax.imshow(self.image_np)
-        else:
-            self.ax.text(0.5, 0.5, "No hay imagen cargada",
-                         horizontalalignment='center',
-                         verticalalignment='center',
-                         transform=self.ax.transAxes, fontsize=16)
-        self.ax.axis('off')
-        self.canvas.draw()
+    def _update_image_display(self, image_np=None):
+      self.ax.clear()
+    
+      # Usar la imagen pasada como argumento o la predeterminada
+      img_to_show = image_np if image_np is not None else self.image_np
+
+      if img_to_show is not None:
+          self.ax.imshow(img_to_show)
+      else:
+        self.ax.text(0.5, 0.5, "No hay imagen cargada",
+                     horizontalalignment='center',
+                     verticalalignment='center',
+                     transform=self.ax.transAxes, fontsize=16)
+    
+      self.ax.axis('off')
+      self.canvas.draw()
+
 
     def abrir_imagen_desde_archivo(self):
         file_path = filedialog.askopenfilename(filetypes=[("Imágenes", "*.png *.jpg *.jpeg"), ("Todos los archivos", "*.*")])
@@ -102,29 +100,7 @@ class TPBaseFrame(ttk.Frame):
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo guardar la imagen: {e}")
 
-    def _apply_pixel_modification(self):
-        x, y, r, g, b = [entry.get() for entry in self.entries]
-        self.modificar_pixel(x, y, r, g, b)
-
-    def modificar_pixel(self, x, y, r, g, b):
-        if self.image_np is None:
-            messagebox.showwarning("Advertencia", "Cargue una imagen primero.")
-            return
-        try:
-            x, y, r, g, b = map(int, [x, y, r, g, b])
-            if not (0 <= x < self.image_np.shape[1] and 0 <= y < self.image_np.shape[0]):
-                raise ValueError("Coordenadas fuera de los límites.")
-            if not all(0 <= val <= 255 for val in (r, g, b)):
-                raise ValueError("Valores RGB deben estar entre 0 y 255.")
-            if self.image_np.ndim == 2:  # escala de grises → RGB
-                self.image_np = np.stack([self.image_np]*3, axis=-1)
-            elif self.image_np.shape[2] == 4:  # ignorar alfa
-                self.image_np = self.image_np[:, :, :3]
-            self.image_np[y, x] = [r, g, b]
-            self._update_image_display()
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-
+    
     def invertir_colores(self):
         if self.image_np is None:
             messagebox.showwarning("Advertencia", "Cargue una imagen primero.")

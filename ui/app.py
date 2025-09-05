@@ -6,6 +6,7 @@ except ImportError:
 
 
 from tps.tp0 import TP0Frame 
+from tps.tp1 import TP1Frame
 
 class App:
     def __init__(self):
@@ -14,7 +15,7 @@ class App:
         else:
             self.root = tk.Tk()
         self.root.title("Procesamiento de Imágenes - TPs")
-        self.root.geometry("1200x800")
+        self.root.geometry("1600x800")
 
         menu_frame = tk.Frame(self.root, bg="#2c3e50")
         menu_frame.pack(side="left", fill="y")
@@ -28,6 +29,7 @@ class App:
         # Registrar TPs aquí
         
         self.register_tp("TP0", TP0Frame)
+        self.register_tp("TP1", TP1Frame)
 
         for name in self.frames:
             btn = tk.Button(menu_frame, text=name, fg="white", bg="#34495e",
