@@ -1,0 +1,43 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+
+# Archivos de Python compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos temporales de Jupyter
+.ipynb_checkpoints/
+*.nbconvert.ipynb
+
+# Archivos de configuración de VS Code y otros editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de sistema (Mac y Linux)
+.DS_Store
+.Trashes
+*.log
+
+# Archivos de salida / datos temporales
+*.out
+*.tmp
+*.bak
+
+# Archivos de paquetes instalados
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Archivos de Jupyter ejecutados con nbconvert
+*.html
+*.pdf
+
+# Archivos de entorno
+.env
