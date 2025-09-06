@@ -8,14 +8,14 @@ from ui.base_frame import TPBaseFrame
 
 class TP1Frame(TPBaseFrame):
     def __init__(self, parent):
-        # Inicializo primero los atributos extra
+        
         self.yiq_image = None
         self.modified_image = None
 
-        # Ahora sí llamo al constructor del padre
+       
         super().__init__(parent)
 
-    # ---------------- Widgets ----------------
+    #  Widgets 
     def _create_widgets(self):
         super()._create_widgets()
         ttk.Label(self, text="TP 1 - Conversión RGB ↔ YIQ", font=("Arial", 14, "bold")).pack(pady=10)
@@ -37,12 +37,12 @@ class TP1Frame(TPBaseFrame):
         ttk.Button(workflow_frame, text="Aplicar Modificación", command=self.modYIQ).pack(pady=2, fill="x")
         ttk.Button(workflow_frame, text="Mostrar RGB Modificado", command=self.show_modified_rgb).pack(pady=2, fill="x")
 
-    # ---------------- Canvases ----------------
+    #  Canvases 
     def _setup_matplotlib_canvases(self):
         self.images_frame = ttk.Frame(self)
         self.images_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
-        # --- Panel Original ---
+        # Panel Original
         original_panel = ttk.LabelFrame(self.images_frame, text="Imagen Original", padding=5)
         original_panel.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
@@ -57,7 +57,7 @@ class TP1Frame(TPBaseFrame):
         self.label_original_info = ttk.Label(original_panel, text="Dimensiones: N/A\nTipo de Dato: N/A")
         self.label_original_info.pack(pady=5)
 
-        # --- Panel YIQ ---
+        #  Panel YIQ 
         yiq_panel = ttk.LabelFrame(self.images_frame, text="Imagen YIQ", padding=5)
         yiq_panel.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
@@ -71,7 +71,7 @@ class TP1Frame(TPBaseFrame):
         self.label_yiq_info = ttk.Label(yiq_panel, text="Dimensiones: N/A\nTipo de Dato: N/A")
         self.label_yiq_info.pack(pady=5)
 
-        # --- Panel Modificada ---
+        #  Panel Modificada 
         modified_panel = ttk.LabelFrame(self.images_frame, text="RGB Modificada", padding=5)
         modified_panel.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
@@ -85,7 +85,7 @@ class TP1Frame(TPBaseFrame):
         self.label_modificada_info = ttk.Label(modified_panel, text="Dimensiones: N/A\nTipo de Dato: N/A")
         self.label_modificada_info.pack(pady=5)
 
-    # ---------------- Update display ----------------
+    #  Update display 
     def _update_image_display(self):
         # Original
         self.ax_original.clear()
@@ -129,7 +129,7 @@ class TP1Frame(TPBaseFrame):
         self.ax_modificada.axis("off")
         self.canvas_modificada.draw()   
 
-    # ---------------- Funciones Workflow ----------------
+    #  Funciones 
     def mostrarYIQ(self):
         if self.image_np is None:
             messagebox.showwarning("Advertencia", "Cargue una imagen primero.")
@@ -157,7 +157,7 @@ class TP1Frame(TPBaseFrame):
         else:
             messagebox.showwarning("Advertencia", "Aplique la modificación primero.")
 
-    # ---------------- Conversión ----------------
+    # Conversión 
     def rgb_to_yiq(self, img):
         img_norm = img / 255.0
         T = np.array([[0.299, 0.587, 0.114],

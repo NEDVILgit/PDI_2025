@@ -20,7 +20,7 @@ class TPBaseFrame(ttk.Frame):
         self._setup_matplotlib_canvases()
         self._update_image_display()
 
-    # ---------------- Widgets básicos ----------------
+    #  Widgets básicos 
     def _create_widgets(self):
         # Panel lateral con botones base
         self.control_frame = ttk.Frame(self, padding=10)
@@ -36,7 +36,7 @@ class TPBaseFrame(ttk.Frame):
         self.images_frame = ttk.Frame(self)
         self.images_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # --- Panel Imagen Original ---
+        #  Panel Imagen Original 
         original_panel = ttk.LabelFrame(self.images_frame, text="Imagen Original", padding=5)
         original_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
 
@@ -53,7 +53,7 @@ class TPBaseFrame(ttk.Frame):
         self.label_original_info = ttk.Label(original_panel, text="Dimensiones: N/A\nTipo de Dato: N/A")
         self.label_original_info.pack(pady=5)
 
-        # --- Panel Imagen Modificada ---
+        # Panel Imagen Modificada 
         modified_panel = ttk.LabelFrame(self.images_frame, text="Imagen Modificada", padding=5)
         modified_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
 
@@ -70,7 +70,7 @@ class TPBaseFrame(ttk.Frame):
         self.label_modificada_info = ttk.Label(modified_panel, text="Dimensiones: N/A\nTipo de Dato: N/A")
         self.label_modificada_info.pack(pady=5)
 
-    # ---------------- Funciones de actualización ----------------
+    #  Funciones de actualización 
     def _update_image_display(self):
         # Imagen Original
         self.ax_original.clear()
@@ -100,7 +100,7 @@ class TPBaseFrame(ttk.Frame):
         self.ax_modificada.axis('off')
         self.canvas_modificada.draw()
 
-    # ---------------- Funciones comunes ----------------
+    # Funciones comunes 
     def abrir_imagen(self):
         file_path = filedialog.askopenfilename(
             filetypes=[("Archivos de Imagen", "*.png *.jpg *.jpeg"), ("Todos los archivos", "*.*")]
