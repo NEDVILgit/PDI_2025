@@ -1,58 +1,63 @@
-import tkinter as tk
-from tkinter import  messagebox, ttk
+from tkinter import ttk, messagebox
 import numpy as np
 from ui.base_frame import TPBaseFrame
 
 
 class TP0Frame(TPBaseFrame):
-  
-        
+    def __init__(self, parent):
+        super().__init__(parent)
+
     def _create_widgets(self):
         super()._create_widgets()
-        ttk.Label(self, text="TP 0 - Interfaz", font=("Arial", 14, "bold")).pack(pady=10)
-        control_frame = ttk.Frame(self)
-        control_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=10)
-   
-        # Modificación de píxeles   
 
-        pixel_frame = ttk.LabelFrame(control_frame, text="Modificar Píxel", padding="10")
-        pixel_frame.pack(fill=tk.X)
+        # Controles de modificación de píxel
+        pixel_frame = ttk.LabelFrame(self.control_frame, text="Modificar Píxel", padding=10)
+        pixel_frame.pack(fill="x", pady=10)
 
-        labels = ["X:", "Y:", "R (0-255):", "G (0-255):", "B (0-255):"]
-        self.entries = []
-        for i, lbl in enumerate(labels):
-            ttk.Label(pixel_frame, text=lbl).grid(row=i, column=0, sticky="w", pady=2)
-            entry = ttk.Entry(pixel_frame)
-            entry.grid(row=i, column=1, sticky="ew", pady=2)
-            self.entries.append(entry)
+        ttk.Label(pixel_frame, text="X:").grid(row=0, column=0)
+        self.x_entry = ttk.Entry(pixel_frame, width=5)
+        self.x_entry.grid(row=0, column=1)
 
-        ttk.Button(pixel_frame, text="Aplicar Píxel", command=self._apply_pixel_modification).grid(row=5, columnspan=2, pady=5, sticky="ew")
+        ttk.Label(pixel_frame, text="Y:").grid(row=1, column=0)
+        self.y_entry = ttk.Entry(pixel_frame, width=5)
+        self.y_entry.grid(row=1, column=1)
 
-        ttk.Separator(control_frame, orient='horizontal').pack(fill='x', pady=10)
+        ttk.Label(pixel_frame, text="R:").grid(row=2, column=0)
+        self.r_entry = ttk.Entry(pixel_frame, width=5)
+        self.r_entry.grid(row=2, column=1)
 
-   
+        ttk.Label(pixel_frame, text="G:").grid(row=3, column=0)
+        self.g_entry = ttk.Entry(pixel_frame, width=5)
+        self.g_entry.grid(row=3, column=1)
+
+        ttk.Label(pixel_frame, text="B:").grid(row=4, column=0)
+        self.b_entry = ttk.Entry(pixel_frame, width=5)
+        self.b_entry.grid(row=4, column=1)
+
+        ttk.Button(pixel_frame, text="Aplicar", command=self._apply_pixel_modification).grid(row=5, columnspan=2, pady=5)
+
     def _apply_pixel_modification(self):
-        x, y, r, g, b = [entry.get() for entry in self.entries]
-        self.modificar_pixel(x, y, r, g, b)
-
-    def modificar_pixel(self, x, y, r, g, b):
-        if self.image_np is None:
-            messagebox.showwarning("Advertencia", "Cargue una imagen primero.")
-            return
         try:
-            x, y, r, g, b = map(int, [x, y, r, g, b])
+            x = int(self.x_entry.get())
+            y = int(self.y_entry.get())
+            r = int(self.r_entry.get())
+            g = int(self.g_entry.get())
+            b = int(self.b_entry.get())
+
+            if self.image_np is None:
+                messagebox.showwarning("Advertencia", "No hay imagen cargada.")
+                return
             if not (0 <= x < self.image_np.shape[1] and 0 <= y < self.image_np.shape[0]):
-                raise ValueError("Coordenadas fuera de los límites.")
-            if not all(0 <= val <= 255 for val in (r, g, b)):
-                raise ValueError("Valores RGB deben estar entre 0 y 255.")
-            if self.image_np.ndim == 2:  # escala de grises → RGB
+                messagebox.showerror("Error", "Coordenadas fuera de rango.")
+                return
+
+            if self.image_np.ndim == 2:
                 self.image_np = np.stack([self.image_np]*3, axis=-1)
-            elif self.image_np.shape[2] == 4:  # ignorar alfa
+            elif self.image_np.shape[2] == 4:
                 self.image_np = self.image_np[:, :, :3]
+
             self.image_np[y, x] = [r, g, b]
+            self.current_image_title = f"Píxel ({x},{y}) Modificado"
             self._update_image_display()
         except Exception as e:
             messagebox.showerror("Error", str(e))
-    
-    
-
