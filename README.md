@@ -1,5 +1,5 @@
 ﻿# PDI-2025-GRUPO02
-
+# Pequeño bug en tp1: Para poder ver la imagen YIQ hay que pasar el cursor por encima del campo que contiene la imagen.
 # CLONAR GIT PARA TRABAJAR
 Abrir terminal CMD o Bash
 Posicionate en el directorio donde se va a crear automaticamente la carpeta
@@ -45,6 +45,7 @@ git add .
 git commit -m "Agregado TP2: filtros en imágenes"
 ## Subir a GitHub
 git push
+
 
 
 
