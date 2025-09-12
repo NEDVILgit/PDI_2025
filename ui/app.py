@@ -7,6 +7,7 @@ except ImportError:
 
 from tps.tp0 import TP0Frame 
 from tps.tp1 import TP1Frame
+from tps.tp2 import TP2Frame
 
 class App:
     def __init__(self):
@@ -30,6 +31,7 @@ class App:
         
         self.register_tp("TP0", TP0Frame)
         self.register_tp("TP1", TP1Frame)
+        self.register_tp("TP2", TP2Frame)
 
         for name in self.frames:
             btn = tk.Button(menu_frame, text=name, fg="white", bg="#34495e",
