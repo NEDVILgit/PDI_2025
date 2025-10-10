@@ -1,34 +1,51 @@
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
 import numpy as np
-from tkinter import messagebox, filedialog
-import ttkbootstrap as ttk
+import imageio.v3 as iio
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
-from ui.base_frame import TPBaseFrame
-import imageio.v3 as iio
+try:
+    import ttkbootstrap as ttkb
+    from ttkbootstrap.constants import *
+except ImportError:
+    ttkb = None
+    PRIMARY, INFO, SUCCESS, DANGER = "", "", "", ""  # Fallback for bootstyle constants
 
-
-class TP2Frame(TPBaseFrame):
+class TP2Frame(ttk.Frame):
     def __init__(self, parent):
+        super().__init__(parent)
         self.imageA = None
         self.imageB = None
         self.resultado = None
-        super().__init__(parent)
+        self._create_widgets()
+        self._setup_matplotlib_canvases()
+        self._update_image_display()
 
-    # ---------------- Widgets ----------------
     def _create_widgets(self):
-        ttk.Label(self, text="TP2 - Operaciones entre imágenes", font=("Arial", 14, "bold")).pack(pady=10)
+        # Configure button style
+        style = ttk.Style()
+        style.configure('TButton', font=('Segoe UI', 12, 'bold'), padding=10)
 
-        workflow_frame = ttk.LabelFrame(self, text="Operaciones", padding=5)
-        workflow_frame.pack(side=ttk.LEFT, fill=ttk.Y, padx=10)
+        workflow_frame = ttk.LabelFrame(self, text="Operaciones", padding=10)
+        workflow_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10)
 
-        # Botones de carga
-        ttk.Button(workflow_frame, text="Cargar Imagen A", command=lambda: self.cargar_imagen("A")).pack(fill="x", pady=2)
-        ttk.Button(workflow_frame, text="Cargar Imagen B", command=lambda: self.cargar_imagen("B")).pack(fill="x", pady=2)
-
+        ttk.Button(
+            workflow_frame,
+            text="🖼️ Cargar Imagen A",
+            bootstyle=PRIMARY,
+            width=20,
+            command=lambda: self.cargar_imagen("A")
+        ).pack(fill="x", pady=2)
+        ttk.Button(
+            workflow_frame,
+            text="🖼️ Cargar Imagen B",
+            bootstyle=INFO,
+            width=20,
+            command=lambda: self.cargar_imagen("B")
+        ).pack(fill="x", pady=2)
         ttk.Separator(workflow_frame, orient="horizontal").pack(fill="x", pady=5)
 
-        # Menú de operaciones
-        ttk.Label(workflow_frame, text="Seleccione operación:").pack(pady=5)
+        ttk.Label(workflow_frame, text="Seleccione operación:", font=("Segoe UI", 12)).pack(pady=5)
         self.combo_op = ttk.Combobox(
             workflow_frame,
             values=[
@@ -45,65 +62,66 @@ class TP2Frame(TPBaseFrame):
                 "Resta Absoluta",
                 "If-Darker",
                 "If-Lighter",
-            ]
+            ],
+            font=("Segoe UI", 12)
         )
         self.combo_op.pack(fill="x", pady=5)
-        self.combo_op.current(0)  # valor por defecto
+        self.combo_op.current(0)
 
+        ttk.Button(
+            workflow_frame,
+            text="▶️ Aplicar",
+            bootstyle=SUCCESS,
+            width=20,
+            command=self.aplicar_operacion
+        ).pack(fill="x", pady=10)
+        ttk.Separator(workflow_frame, orient="horizontal").pack(fill="x", pady=5)
+        ttk.Button(
+            workflow_frame,
+            text="❌ Salir",
+            bootstyle=DANGER,
+            width=20,
+            command=self.quit
+        ).pack(fill="x", pady=5)
 
-        ttk.Button(workflow_frame, text="Aplicar", command=self.aplicar_operacion).pack(fill="x", pady=10)
-
-    # ---------------- Canvases ----------------
     def _setup_matplotlib_canvases(self):
         self.images_frame = ttk.Frame(self)
         self.images_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
-        # Imagen A
         imga_panel = ttk.LabelFrame(self.images_frame, text="Imagen A", padding=5)
         imga_panel.pack(side="left", fill="both", expand=True, padx=5, pady=5)
-        
-        self.fig_A = Figure(figsize=(3.5, 3), dpi=100)
+        self.fig_A = Figure(figsize=(3.5, 3.5), dpi=100)
         self.ax_A = self.fig_A.add_subplot(111)
         self.canvas_A = FigureCanvasTkAgg(self.fig_A, master=imga_panel)
         self.canvas_A.get_tk_widget().pack(side="top", fill="both", expand=True)
-        
         self.toolbar_imga = NavigationToolbar2Tk(self.canvas_A, imga_panel)
         self.toolbar_imga.update()
-        self.label_imga_info = ttk.Label(imga_panel, text="Dimensiones: N/A\nTipo de Dato: N/A")
+        self.label_imga_info = ttk.Label(imga_panel, text="Dimensiones: N/A\nTipo de Dato: N/A", font=("Segoe UI", 10))
         self.label_imga_info.pack(pady=5)
-        
 
-        # Imagen B
         imgb_panel = ttk.LabelFrame(self.images_frame, text="Imagen B", padding=5)
         imgb_panel.pack(side="left", fill="both", expand=True, padx=5, pady=5)
-
-        self.fig_B = Figure(figsize=(3.5, 3), dpi=100)
+        self.fig_B = Figure(figsize=(3.5, 3.5), dpi=100)
         self.ax_B = self.fig_B.add_subplot(111)
         self.canvas_B = FigureCanvasTkAgg(self.fig_B, master=imgb_panel)
         self.canvas_B.get_tk_widget().pack(side="top", fill="both", expand=True)
-        
         self.toolbar_imgb = NavigationToolbar2Tk(self.canvas_B, imgb_panel)
         self.toolbar_imgb.update()
-        self.label_imgb_info = ttk.Label(imgb_panel, text="Dimensiones: N/A\nTipo de Dato: N/A")
+        self.label_imgb_info = ttk.Label(imgb_panel, text="Dimensiones: N/A\nTipo de Dato: N/A", font=("Segoe UI", 10))
         self.label_imgb_info.pack(pady=5)
 
-        # Resultado
         imgres_panel = ttk.LabelFrame(self.images_frame, text="Imagen Resultado", padding=5)
         imgres_panel.pack(side="left", fill="both", expand=True, padx=5, pady=5)
-
-        self.fig_res = Figure(figsize=(3.5, 3), dpi=100)
+        self.fig_res = Figure(figsize=(3.5, 3.5), dpi=100)
         self.ax_res = self.fig_res.add_subplot(111)
         self.canvas_res = FigureCanvasTkAgg(self.fig_res, master=imgres_panel)
         self.canvas_res.get_tk_widget().pack(side="top", fill="both", expand=True)
-        
         self.toolbar_imgres = NavigationToolbar2Tk(self.canvas_res, imgres_panel)
         self.toolbar_imgres.update()
-        self.label_imgres_info = ttk.Label(imgres_panel, text="Dimensiones: N/A\nTipo de Dato: N/A")
+        self.label_imgres_info = ttk.Label(imgres_panel, text="Dimensiones: N/A\nTipo de Dato: N/A", font=("Segoe UI", 10))
         self.label_imgres_info.pack(pady=5)
 
-    # ---------------- Update display ----------------
     def _update_image_display(self):
-        # Imagen A
         self.ax_A.clear()
         if self.imageA is not None:
             self.ax_A.imshow(self.imageA)
@@ -113,36 +131,36 @@ class TP2Frame(TPBaseFrame):
             )
         else:
             self.ax_A.text(0.5, 0.5, "No hay A", ha="center", va="center")
+            self.label_imga_info.config(text="Dimensiones: N/A\nTipo de Dato: N/A")
         self.ax_A.axis("off")
         self.canvas_A.draw_idle()
 
-        # Imagen B
         self.ax_B.clear()
         if self.imageB is not None:
             self.ax_B.imshow(self.imageB)
             self.ax_B.set_title("Imagen B")
             self.label_imgb_info.config(
                 text=f"Dimensiones: {self.imageB.shape}\nTipo de Dato: {self.imageB.dtype}"
-             )
+            )
         else:
             self.ax_B.text(0.5, 0.5, "No hay B", ha="center", va="center")
+            self.label_imgb_info.config(text="Dimensiones: N/A\nTipo de Dato: N/A")
         self.ax_B.axis("off")
         self.canvas_B.draw_idle()
 
-        # Resultado
         self.ax_res.clear()
         if self.resultado is not None:
             self.ax_res.imshow(self.resultado)
             self.ax_res.set_title("Resultado")
             self.label_imgres_info.config(
                 text=f"Dimensiones: {self.resultado.shape}\nTipo de Dato: {self.resultado.dtype}"
-             )
+            )
         else:
             self.ax_res.text(0.5, 0.5, "Sin resultado", ha="center", va="center")
+            self.label_imgres_info.config(text="Dimensiones: N/A\nTipo de Dato: N/A")
         self.ax_res.axis("off")
         self.canvas_res.draw_idle()
 
-    # ---------------- Cargar imágenes ----------------
     def cargar_imagen(self, cual):
         file_path = filedialog.askopenfilename(
             filetypes=[("Archivos de Imagen", "*.png *.jpg *.jpeg"), ("Todos los archivos", "*.*")]
@@ -158,7 +176,6 @@ class TP2Frame(TPBaseFrame):
             except Exception as e:
                 messagebox.showerror("Error", str(e))
 
-    # ---------------- Auxiliares ----------------
     def ajustar_tamanios(self):
         if self.imageA is None or self.imageB is None:
             messagebox.showwarning("Advertencia", "Debe cargar ambas imágenes.")
@@ -182,7 +199,6 @@ class TP2Frame(TPBaseFrame):
         rgb = np.clip(rgb, 0, 1) * 255
         return rgb.astype(np.uint8)
 
-    # ---------------- Dispatcher ----------------
     def aplicar_operacion(self):
         operaciones = {
             "Suma RGB (Clampeada)": self.suma_rgb_clampeada,
@@ -203,7 +219,6 @@ class TP2Frame(TPBaseFrame):
         if op in operaciones:
             operaciones[op]()
 
-    # ---------------- Operaciones ----------------
     def suma_rgb_clampeada(self):
         imgA, imgB = self.ajustar_tamanios()
         if imgA is None: return
@@ -227,6 +242,7 @@ class TP2Frame(TPBaseFrame):
         if imgA is None: return
         self.resultado = ((imgA.astype(np.float32) - imgB.astype(np.float32)) / 2 + 127).clip(0, 255).astype(np.uint8)
         self._update_image_display()
+
     def suma_yiq_clampeada(self):
         imgA, imgB = self.ajustar_tamanios()
         if imgA is None: return
@@ -240,9 +256,9 @@ class TP2Frame(TPBaseFrame):
         if imgA is None: return
         yiqA, yiqB = self.rgb_to_yiq(imgA), self.rgb_to_yiq(imgB)
         yiq_res = (yiqA + yiqB) / 2
-        yiq_res[..., 0] = np.clip(yiq_res[..., 0], 0, 1)          # Y
-        yiq_res[..., 1] = np.clip(yiq_res[..., 1], -0.5957, 0.5957)  # I
-        yiq_res[..., 2] = np.clip(yiq_res[..., 2], -0.5226, 0.5226)  # Q
+        yiq_res[..., 0] = np.clip(yiq_res[..., 0], 0, 1)
+        yiq_res[..., 1] = np.clip(yiq_res[..., 1], -0.5957, 0.5957)
+        yiq_res[..., 2] = np.clip(yiq_res[..., 2], -0.5226, 0.5226)
         self.resultado = self.yiq_to_rgb(yiq_res)
         self._update_image_display()
 
@@ -264,7 +280,6 @@ class TP2Frame(TPBaseFrame):
         yiq_res[..., 2] = np.clip(yiq_res[..., 2], -0.5226, 0.5226)
         self.resultado = self.yiq_to_rgb(yiq_res)
         self._update_image_display()
-
 
     def producto(self):
         imgA, imgB = self.ajustar_tamanios()
@@ -298,3 +313,17 @@ class TP2Frame(TPBaseFrame):
         if imgA is None: return
         self.resultado = np.maximum(imgA, imgB).astype(np.uint8)
         self._update_image_display()
+
+def main():
+    if ttkb:
+        root = ttkb.Window(themename="superhero")
+    else:
+        root = tk.Tk()
+    root.title("Procesamiento de Imágenes - TP2")
+    root.geometry("1400x600")
+    app = TP2Frame(root)
+    app.pack(fill="both", expand=True)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
