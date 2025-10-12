@@ -3,3 +3,5 @@ imageio
 matplotlib
 ttkbootstrap
 opencv-python
+pillow
+scipy

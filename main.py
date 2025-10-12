@@ -54,6 +54,14 @@ class MenuPrincipal:
             command=lambda: self.abrir_tp("tps/tp2.py")
         ).pack(pady=10)
 
+        ttk.Button(
+            button_frame,
+            text="🖼️ Abrir TP3",
+            bootstyle=SUCCESS,
+            width=20,
+            command=lambda: self.abrir_tp("tps/tp3.py")
+        ).pack(pady=10)
+
         ttk.Separator(root, orient=HORIZONTAL).pack(fill=X, pady=20)
 
         # Botón de salida
