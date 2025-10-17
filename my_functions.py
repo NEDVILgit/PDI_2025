@@ -1,26 +1,78 @@
 import numpy as np
 
+# --- CONSTANTES Y CONVERSIÓN ---
+
+""" Matriz de conversión de RGB a YIQ """
 MAT_YIQ = np.array([[0.299, 0.595716, 0.211456],
                     [0.587, -0.274453, -0.522591],
                     [0.114, -0.321263, 0.311135]])
 
 def rgb2yiq(_im):
+    """Convierte una imagen de RGB a YIQ de forma eficiente."""
     _rgb = _im.reshape((-1,3))
     _yiq = _rgb @ MAT_YIQ
     _yiq = _yiq.reshape(_im.shape)
     return _yiq
 
-def RGB_to_YIQ(rgb):
-   yiq = np.zeros(rgb.shape)
-   yiq[:,:,0] = 0.229*rgb[:,:,0] + 0.587*rgb[:,:,1] + 0.114*rgb[:,:,2]
-   yiq[:,:,1] = 0.595716*rgb[:,:,0] - 0.274453*rgb[:,:,1] - 0.321263*rgb[:,:,2]
-   yiq[:,:,2] = 0.211456*rgb[:,:,0] - 0.522591*rgb[:,:,1] + 0.311135*rgb[:,:,2]
-   #yiq[:,:,3]=rgb[:,:,3]
-   return yiq
-
 def yiq2rgb(_im):
-    return (_im.reshape((-1, 3)) @ np.linalg.inv(MAT_YIQ)).reshape(_im.shape)
+    """Convierte una imagen de YIQ a RGB de forma eficiente."""
+    _rgb = (_im.reshape((-1, 3)) @ np.linalg.inv(MAT_YIQ)).reshape(_im.shape)
+    return np.clip(_rgb, 0, 1) # Buena práctica añadir clip aquí
 
+# --- OPERACIONES ARITMÉTICAS ---
+
+# --- Sumas ---
+def sum_rgb_clampeada(im1, im2):
+  """Suma directa y recorta el resultado si supera el rango [0, 1]."""
+  return np.clip(im1 + im2, 0, 1)
+
+def sum_rgb_promediada(im1, im2):
+  """Suma las imágenes y las divide por 2 para obtener un promedio."""
+  return (im1.astype(float) + im2.astype(float)) / 2.0
+
+def sum_yiq_promediada(im1, im2):
+    """Suma dos imágenes promediando sus valores en el espacio YIQ."""
+    yiq1 = rgb2yiq(im1)
+    yiq2 = rgb2yiq(im2)
+    sum_y = (yiq1 + yiq2) / 2.0
+    sum_r = yiq2rgb(sum_y)
+    return sum_r # yiq2rgb ya hace el clip
+
+# --- Diferencias ---
+def diff_rgb_absoluta(im1, im2):
+  """Calcula la diferencia absoluta (brillo) entre dos imágenes RGB."""
+  return np.abs(im1 - im2)
+
+def diff_rgb_promediada(im1, im2):
+    """Calcula la diferencia normalizada. El gris (0.5) es 'sin diferencia'."""
+    diff = (im1.astype(float) - im2.astype(float)) / 2.0 + 0.5
+    return np.clip(diff, 0, 1)
+
+def diff_yiq_promediada(im1, im2):
+    """Calcula la diferencia de luminancia normalizada."""
+    yiq1 = rgb2yiq(im1)
+    yiq2 = rgb2yiq(im2)
+    diff_y = (yiq1[:, :, 0] - yiq2[:, :, 0]) / 2.0 + 0.5
+    diff_image = np.stack([diff_y, diff_y, diff_y], axis=-1)
+    return np.clip(diff_image, 0, 1)
+
+# --- FUNCIONES DE COMPOSICIÓN ---
+
+def if_darker(im1, im2):
+    """Crea una imagen nueva usando el píxel más oscuro de cada imagen."""
+    yiq1 = rgb2yiq(im1)
+    yiq2 = rgb2yiq(im2)
+    mask = yiq1[:, :, 0] < yiq2[:, :, 0]
+    return np.where(mask[..., np.newaxis], im1, im2)
+
+def if_lighter(im1, im2):
+    """Crea una imagen nueva usando el píxel más claro de cada imagen."""
+    yiq1 = rgb2yiq(im1)
+    yiq2 = rgb2yiq(im2)
+    mask = yiq1[:, :, 0] > yiq2[:, :, 0]
+    return np.where(mask[..., np.newaxis], im1, im2)
+
+# --- OTRAS FUNCIONES ---
 def rmse(im_1, im_2 = 0):
     return ((im_1 - im_2)**2).mean()**0.5
 
@@ -35,119 +87,3 @@ def _clip(_data, matrix = np.eye(3)):
     _mapped = corners @ matrix
     _data[..., :] = np.clip(_data[..., :], np.min(_mapped, axis=0), np.max(_mapped, axis=0))
     return _data
-
-# --- FUNCIÓN SUMA RGB ---
-def sum_rgb(im1, im2):
-  return np.clip(im1 + im2, 0, 1)
-
-def sum_rgb_promediada(im1, im2):
-  return (im1 + im2) / 2.0
-
-# --- FUNCIÓN RESTA RGB ---
-def diff_rgb(im1, im2):
-  return np.abs(im1 - im2)
-
-def diff_rgb_promediada(im1, im2):
-    # La operación (im1 - im2) da resultados en [-1, 1].
-    # Dividir por 2 lo lleva a [-0.5, 0.5].
-    # Sumar 0.5 lo centra en el rango [0, 1], con 0.5 como punto medio.
-    diff = (im1.astype(float) - im2.astype(float)) / 2.0 + 0.5
-    return np.clip(diff, 0, 1)
-
-# --- FUNCIÓN SUMA YIQ ---
-def sum_yiq(im1, im2):
-    # Convertir ambas imágenes a YIQ usando tu función
-    yiq1 = rgb2yiq(im1)
-    yiq2 = rgb2yiq(im2)
-
-    # Sumar las representaciones YIQ
-    sum_y = yiq1 + yiq2
-    
-    # Convertir el resultado de vuelta a RGB
-    sum_r = yiq2rgb(sum_y)
-    
-    # Recortar al rango válido de RGB y devolver
-    return np.clip(sum_r, 0, 1)
-
-def sum_yiq_promediada(im1, im2):
-    yiq1 = rgb2yiq(im1)
-    yiq2 = rgb2yiq(im2)
-    
-    # Promediar en el espacio YIQ
-    sum_y = (yiq1 + yiq2) / 2.0
-    
-    sum_r = yiq2rgb(sum_y)
-    return np.clip(sum_r, 0, 1)
-
-# --- FUNCIÓN RESTA YIQ ---
-def diff_yiq(im1, im2):
-    # Convertir ambas imágenes a YIQ
-    yiq1 = rgb2yiq(im1)
-    yiq2 = rgb2yiq(im2)
-    
-    # Calcular la diferencia absoluta solo en el canal Y (luminancia)
-    # yiq1[:, :, 0] es el canal Y de la primera imagen
-    diff_y = np.abs(yiq1[:, :, 0] - yiq2[:, :, 0])
-    
-    # Crear una imagen en escala de grises repitiendo la diferencia
-    # en los tres canales (R=G=B) para poder mostrarla con imshow
-    diff_image = np.stack([diff_y, diff_y, diff_y], axis=-1)
-    
-    # Recortar por seguridad, aunque el resultado ya debería estar en [0, 1]
-    return np.clip(diff_image, 0, 1)
-
-def diff_yiq_promediada(im1, im2):
-    yiq1 = rgb2yiq(im1)
-    yiq2 = rgb2yiq(im2)
-    
-    # Calcular diferencia normalizada solo para el canal Y
-    diff_y = (yiq1[:, :, 0] - yiq2[:, :, 0]) / 2.0 + 0.5
-    
-    # Crear imagen de 3 canales para visualización
-    diff_image = np.stack([diff_y, diff_y, diff_y], axis=-1)
-    return np.clip(diff_image, 0, 1)
-
-# --- FUNCIÓN IF DARKER / IF LIGHTER ---
-def if_darker(im1, im2):
-    """
-    Compara dos imágenes y devuelve una nueva imagen que contiene, para
-    cada posición, el píxel que sea más oscuro (menor luminancia).
-    """
-    # Convertir ambas imágenes a YIQ para obtener su luminancia
-    yiq1 = rgb2yiq(im1)
-    yiq2 = rgb2yiq(im2)
-    
-    # Obtener el canal de luminancia (Y) de cada imagen
-    y1 = yiq1[:, :, 0]
-    y2 = yiq2[:, :, 0]
-    
-    # Crear una máscara booleana. Será True donde im1 es más oscura que im2.
-    mask = y1 < y2
-    
-    # Usar np.where para construir la imagen final.
-    # Donde la máscara es True, se usa un píxel de im1.
-    # Donde es False, se usa un píxel de im2.
-    # np.newaxis expande la máscara para que coincida con las 3 dimensiones de color.
-    return np.where(mask[..., np.newaxis], im1, im2)
-
-def if_lighter(im1, im2):
-    """
-    Compara dos imágenes y devuelve una nueva imagen que contiene, para
-    cada posición, el píxel que sea más claro (mayor luminancia).
-    """
-    # Convertir ambas imágenes a YIQ
-    yiq1 = rgb2yiq(im1)
-    yiq2 = rgb2yiq(im2)
-    
-    # Obtener el canal de luminancia (Y)
-    y1 = yiq1[:, :, 0]
-    y2 = yiq2[:, :, 0]
-    
-    # La máscara ahora es True donde im1 es más clara que im2
-    mask = y1 > y2
-    
-    # La lógica es la misma que en if_darker, pero con la condición invertida
-    return np.where(mask[..., np.newaxis], im1, im2)
-
-
-
