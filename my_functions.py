@@ -36,32 +36,30 @@ def _clip(_data, matrix = np.eye(3)):
     _data[..., :] = np.clip(_data[..., :], np.min(_mapped, axis=0), np.max(_mapped, axis=0))
     return _data
 
+# --- FUNCIÓN SUMA RGB ---
 def sum_rgb(im1, im2):
   return np.clip(im1 + im2, 0, 1)
 
-def sum_rgb2(im1, im2):
-  sum_r = im1[:, :, 0] + im2[:, :, 0]
-  sum_g = im1[:, :, 1] + im2[:, :, 1]
-  sum_b = im1[:, :, 2] + im2[:, :, 2]
+def sum_rgb_promediada(im1, im2):
+  return (im1 + im2) / 2.0
 
-  """
-  Calcula la diferencia absoluta píxel a píxel entre dos imágenes RGB.
-  Se asume que las imágenes de entrada están en formato de punto flotante en el rango [0, 1].
-  El resultado también estará en el rango [0, 1].
-  """
+# --- FUNCIÓN RESTA RGB ---
 def diff_rgb(im1, im2):
   return np.abs(im1 - im2)
 
+def diff_rgb_promediada(im1, im2):
+    # La operación (im1 - im2) da resultados en [-1, 1].
+    # Dividir por 2 lo lleva a [-0.5, 0.5].
+    # Sumar 0.5 lo centra en el rango [0, 1], con 0.5 como punto medio.
+    diff = (im1.astype(float) - im2.astype(float)) / 2.0 + 0.5
+    return np.clip(diff, 0, 1)
+
+# --- FUNCIÓN SUMA YIQ ---
 def sum_yiq(im1, im2):
-    """
-    Suma dos imágenes en el espacio YIQ y convierte el resultado a RGB.
-    La suma se realiza en los tres canales YIQ, y el resultado final
-    se recorta al rango válido de RGB [0, 1].
-    """
     # Convertir ambas imágenes a YIQ usando tu función
     yiq1 = rgb2yiq(im1)
     yiq2 = rgb2yiq(im2)
-    
+
     # Sumar las representaciones YIQ
     sum_y = yiq1 + yiq2
     
@@ -71,12 +69,17 @@ def sum_yiq(im1, im2):
     # Recortar al rango válido de RGB y devolver
     return np.clip(sum_r, 0, 1)
 
+def sum_yiq_promediada(im1, im2):
+    yiq1 = rgb2yiq(im1)
+    yiq2 = rgb2yiq(im2)
+    
+    # Promediar en el espacio YIQ
+    sum_y = (yiq1 + yiq2) / 2.0
+    
+    sum_r = yiq2rgb(sum_y)
+    return np.clip(sum_r, 0, 1)
 
-    """
-    Calcula la diferencia de luminancia (canal Y) entre dos imágenes.
-    El resultado es una imagen en escala de grises que muestra dónde
-    difieren en brillo las imágenes originales.
-    """
+# --- FUNCIÓN RESTA YIQ ---
 def diff_yiq(im1, im2):
     # Convertir ambas imágenes a YIQ
     yiq1 = rgb2yiq(im1)
@@ -93,6 +96,18 @@ def diff_yiq(im1, im2):
     # Recortar por seguridad, aunque el resultado ya debería estar en [0, 1]
     return np.clip(diff_image, 0, 1)
 
+def diff_yiq_promediada(im1, im2):
+    yiq1 = rgb2yiq(im1)
+    yiq2 = rgb2yiq(im2)
+    
+    # Calcular diferencia normalizada solo para el canal Y
+    diff_y = (yiq1[:, :, 0] - yiq2[:, :, 0]) / 2.0 + 0.5
+    
+    # Crear imagen de 3 canales para visualización
+    diff_image = np.stack([diff_y, diff_y, diff_y], axis=-1)
+    return np.clip(diff_image, 0, 1)
+
+# --- FUNCIÓN IF DARKER / IF LIGHTER ---
 def if_darker(im1, im2):
     """
     Compara dos imágenes y devuelve una nueva imagen que contiene, para
