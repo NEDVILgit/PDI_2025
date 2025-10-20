@@ -189,3 +189,96 @@ def normalizacion_histograma(y_channel, target_mean=0.5, target_std=0.15):
     
     return np.clip(y_normalized, 0, 1)
 
+# =============================================================================
+# SECCIÓN 2: FILTRADO POR CONVOLUCIÓN (NUEVO PARA TP4)
+# =============================================================================
+
+def convolve2d(image, kernel):
+    """
+    Aplica convolución 2D a una imagen en escala de grises.
+    Maneja los bordes replicando los píxeles del borde (zero-padding).
+    """
+    k_h, k_w = kernel.shape
+    pad_h, pad_w = k_h // 2, k_w // 2
+    
+    # Añadir padding replicando los bordes
+    padded_image = np.pad(image, ((pad_h, pad_h), (pad_w, pad_w)), mode='edge')
+    
+    output = np.zeros_like(image, dtype=np.float64)
+    
+    # Rotar el kernel 180 grados para la convolución
+    kernel_flipped = np.flipud(np.fliplr(kernel))
+    
+    for i in range(image.shape[0]):
+        for j in range(image.shape[1]):
+            region = padded_image[i:i + k_h, j:j + k_w]
+            output[i, j] = np.sum(region * kernel_flipped)
+            
+    return output
+
+# --- Generadores de Kernels ---
+
+def get_kernel(filter_name):
+    """Devuelve el kernel correspondiente al nombre del filtro."""
+    
+    # --- PASABAJOS ---
+    if filter_name == "Plano 3x3":
+        return np.ones((3, 3)) / 9
+    if filter_name == "Plano 5x5":
+        return np.ones((5, 5)) / 25
+    if filter_name == "Plano 7x7":
+        return np.ones((7, 7)) / 49
+        
+    if filter_name == "Bartlett 3x3":
+        k = np.array([[1, 2, 1], [2, 4, 2], [1, 2, 1]])
+        return k / k.sum()
+    if filter_name == "Bartlett 5x5":
+        k = np.array([1, 2, 3, 2, 1])
+        k = np.outer(k, k)
+        return k / k.sum()
+    if filter_name == "Bartlett 7x7":
+        k = np.array([1, 2, 3, 4, 3, 2, 1])
+        k = np.outer(k, k)
+        return k / k.sum()
+        
+    if filter_name == "Gaussiano 5x5":
+        k = np.array([1, 4, 6, 4, 1])
+        k = np.outer(k, k)
+        return k / k.sum()
+    if filter_name == "Gaussiano 7x7":
+        k = np.array([1, 6, 15, 20, 15, 6, 1])
+        k = np.outer(k, k)
+        return k / k.sum()
+        
+    # --- DETECTORES DE BORDES ---
+    if filter_name == "Laplaciano v4":
+        return np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]])
+    if filter_name == "Laplaciano v8":
+        return np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]])
+        
+    # Sobel
+    sobel_base_v = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+    if filter_name == "Sobel O (Oeste)": return sobel_base_v
+    if filter_name == "Sobel E (Este)": return -sobel_base_v
+    if filter_name == "Sobel N (Norte)": return sobel_base_v.T
+    if filter_name == "Sobel S (Sur)": return -sobel_base_v.T
+    if filter_name == "Sobel NO (Noroeste)": return np.array([[-2, -1, 0], [-1, 0, 1], [0, 1, 2]])
+    if filter_name == "Sobel SE (Sudeste)": return -np.array([[-2, -1, 0], [-1, 0, 1], [0, 1, 2]])
+    if filter_name == "Sobel NE (Noreste)": return np.array([[0, 1, 2], [-1, 0, 1], [-2, -1, 0]])
+    if filter_name == "Sobel SO (Sudoeste)": return -np.array([[0, 1, 2], [-1, 0, 1], [-2, -1, 0]])
+    
+    # --- OTROS FILTROS ---
+    if filter_name == "Pasaaltos (fc=0.2)":
+        return np.identity(3) - (get_kernel("Pasabajos Plano 3x3") * 0.2) # Aproximación
+    if filter_name == "Pasaaltos (fc=0.4)":
+        return np.identity(3) - (get_kernel("Pasabajos Plano 3x3") * 0.4) # Aproximación
+
+    if filter_name == "Pasabanda (DoG)":
+        gauss5 = get_kernel("Gaussiano 5x5")
+        # Para restar, necesitamos que Bartlett sea del mismo tamaño
+        bartlett3 = get_kernel("Bartlett 3x3")
+        bartlett5_padded = np.pad(bartlett3, pad_width=1, mode='constant', constant_values=0)
+        return gauss5 - bartlett5_padded
+
+    return np.array([[1]]) # Kernel identidad si no se encuentra
+
