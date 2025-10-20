@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.special import erfinv # Para la normalización del histograma
+from scipy.ndimage import minimum_filter, maximum_filter, median_filter
 
 # --- CONSTANTES Y CONVERSIÓN ---
 
@@ -281,4 +282,38 @@ def get_kernel(filter_name):
         return gauss5 - bartlett5_padded
 
     return np.array([[1]]) # Kernel identidad si no se encuentra
+
+# =============================================================================
+# SECCIÓN 3: PROCESAMIENTO MORFOLÓGICO (NUEVO PARA TP5)
+# =============================================================================
+
+def erosion(image, structure_size=3):
+    """Aplica el filtro de erosión (mínimo local)."""
+    structure = np.ones((structure_size, structure_size))
+    return minimum_filter(image, footprint=structure)
+
+def dilatacion(image, structure_size=3):
+    """Aplica el filtro de dilatación (máximo local)."""
+    structure = np.ones((structure_size, structure_size))
+    return maximum_filter(image, footprint=structure)
+
+def apertura(image, structure_size=3):
+    """Aplica el filtro de apertura (erosión seguida de dilatación)."""
+    eroded = erosion(image, structure_size)
+    return dilatacion(eroded, structure_size)
+
+def cierre(image, structure_size=3):
+    """Aplica el filtro de cierre (dilatación seguida de erosión)."""
+    dilated = dilatacion(image, structure_size)
+    return erosion(dilated, structure_size)
+    
+def borde_morfologico(image, structure_size=3):
+    """Calcula el borde morfológico (dilatación - erosión)."""
+    dilated = dilatacion(image, structure_size)
+    eroded = erosion(image, structure_size)
+    return dilated - eroded
+
+def mediana(image, structure_size=3):
+    """Aplica el filtro de mediana."""
+    return median_filter(image, size=structure_size)
 
