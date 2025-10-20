@@ -1,13 +1,13 @@
 ﻿# PDI-2025-GRUPO02
-# Pequeño bug en tp1: Para poder ver la imagen YIQ hay que pasar el cursor por encima del campo que contiene la imagen.
+
 # CLONAR GIT PARA TRABAJAR
 Abrir terminal CMD o Bash
 Posicionate en el directorio donde se va a crear automaticamente la carpeta
 # Copia el siguente comando:
-    git clone https://github.com/Lucas976g/PDI-2025-GRUPO02.git
+    git clone https://github.com/NEDVILgit/PDI_2025.git
 
 # ingresa en la carpeta clonada con el comando: 
-    cd PDI-2025-GRUPO02
+    cd PDI_2025
 
 # Crea un entorno virtual de python:
     

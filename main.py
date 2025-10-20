@@ -9,7 +9,7 @@ class MenuPrincipal:
     def __init__(self, root):
         self.root = root
         self.root.title("Menú Principal de Trabajos Prácticos")
-        self.root.geometry("600x420")
+        self.root.geometry("600x600")
         self.root.resizable(False, False)
 
         # Estilo visual
@@ -23,7 +23,7 @@ class MenuPrincipal:
             font=("Segoe UI", 20, "bold"),
             anchor="center"
         )
-        title_label.pack(pady=40)
+        title_label.pack(pady=5)
 
         # Frame central para botones
         button_frame = ttk.Frame(root)
@@ -34,32 +34,48 @@ class MenuPrincipal:
             button_frame,
             text="🧩 Abrir TP0",
             bootstyle=PRIMARY,
-            width=20,
+            width=40,
             command=lambda: self.abrir_tp("tps/tp0.py")
         ).pack(pady=10)
 
         ttk.Button(
             button_frame,
-            text="📊 Abrir TP1",
+            text="📊 Abrir TP1 --> Espacios Cromáticos",
             bootstyle=INFO,
-            width=20,
+            width=40,
             command=lambda: self.abrir_tp("tps/tp1.py")
         ).pack(pady=10)
 
         ttk.Button(
             button_frame,
-            text="🖼️ Abrir TP2",
+            text="🖼️ Abrir TP2 --> Tema 3: Aritmética de pixeles",
             bootstyle=SUCCESS,
-            width=20,
+            width=40,
             command=lambda: self.abrir_tp("tps/tp2.py")
         ).pack(pady=10)
 
         ttk.Button(
             button_frame,
-            text="🖼️ Abrir TP3",
+            text="🖼️ Abrir TP3 --> Tema 4: Operaciones de luminancia",
             bootstyle=SUCCESS,
-            width=20,
+            width=40,
             command=lambda: self.abrir_tp("tps/tp3.py")
+        ).pack(pady=10)
+
+        ttk.Button(
+            button_frame,
+            text="🖼️ Abrir TP4 --> Tema 5: Proc. por convolución",
+            bootstyle=SUCCESS,
+            width=40,
+            command=lambda: self.abrir_tp("tps/tp4.py")
+        ).pack(pady=10)
+
+        ttk.Button(
+            button_frame,
+            text="🖼️ Abrir TP5 --> Tema 6: Proc. morfológico",
+            bootstyle=SUCCESS,
+            width=40,
+            command=lambda: self.abrir_tp("tps/tp4.py")
         ).pack(pady=10)
 
         ttk.Separator(root, orient=HORIZONTAL).pack(fill=X, pady=20)
