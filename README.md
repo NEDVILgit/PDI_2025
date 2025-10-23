@@ -7,7 +7,7 @@ Posicionate en el directorio donde se va a crear automaticamente la carpeta
     git clone https://github.com/NEDVILgit/PDI_2025_Grupo_02.git
 
 # ingresa en la carpeta clonada con el comando: 
-    cd PDI_2025
+    cd PDI_2025_Grupo_02
 
 # Crea un entorno virtual de python:
     
@@ -45,6 +45,7 @@ git add .
 git commit -m "Agregado TP2: filtros en imágenes"
 ## Subir a GitHub
 git push
+
 
 
 
