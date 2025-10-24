@@ -1,13 +1,12 @@
 import numpy as np
 from scipy.special import erfinv # Para la normalización del histograma
-from scipy.ndimage import minimum_filter, maximum_filter, median_filter
-
 # --- CONSTANTES Y CONVERSIÓN ---
 
 """ Matriz de conversión de RGB a YIQ """
+# Corregido: 0.229 a 0.299 en el primer componente de Y
 MAT_RGB_TO_YIQ = np.array([[0.299, 0.587, 0.114],
-                         [0.596, -0.274, -0.322],
-                         [0.211, -0.523, 0.312]]).T
+                         [0.595716, -0.274453, -0.321263],
+                         [0.211456, -0.522591, 0.311135]]).T
 
 """ Matriz de conversión de YIQ a RGB """
 MAT_YIQ_TO_RGB = np.linalg.inv(MAT_RGB_TO_YIQ)
@@ -194,28 +193,49 @@ def normalizacion_histograma(y_channel, target_mean=0.5, target_std=0.15):
 # SECCIÓN 2: FILTRADO POR CONVOLUCIÓN (NUEVO PARA TP4)
 # =============================================================================
 
+def _convolution(image, kernel, option='sum'):
+    """
+    Función de convolución/morfología base proporcionada por el usuario.
+    Nota: Devuelve una imagen de tamaño reducido ('valid').
+    """
+    convolved_shape = (image.shape[0] - kernel.shape[0] + 1, image.shape[1] - kernel.shape[1] + 1)
+    convolved = np.zeros(convolved_shape)
+
+    if option == 'sum':
+        for x in range(convolved.shape[0]):
+            for y in range(convolved.shape[1]):
+                sub_image = image[x:x+kernel.shape[0], y:y+kernel.shape[1]]
+                convolved[x, y] = (sub_image * kernel).sum()
+    elif option == 'max':
+        for x in range(convolved.shape[0]):
+            for y in range(convolved.shape[1]):
+                sub_image = image[x:x+kernel.shape[0], y:y+kernel.shape[1]]
+                convolved[x, y] = (sub_image * kernel).max()
+    elif option == 'min':
+        for x in range(convolved.shape[0]):
+            for y in range(convolved.shape[1]):
+                sub_image = image[x:x+kernel.shape[0], y:y+kernel.shape[1]]
+                convolved[x, y] = (sub_image * kernel).min()
+
+    return convolved
+
 def convolve2d(image, kernel):
     """
     Aplica convolución 2D a una imagen en escala de grises.
-    Maneja los bordes replicando los píxeles del borde (zero-padding).
+    Esta es una envoltura sobre _convolution para mantener el tamaño de la imagen.
+    Maneja los bordes replicando los píxeles del borde.
     """
     k_h, k_w = kernel.shape
     pad_h, pad_w = k_h // 2, k_w // 2
     
-    # Añadir padding replicando los bordes
     padded_image = np.pad(image, ((pad_h, pad_h), (pad_w, pad_w)), mode='edge')
     
-    output = np.zeros_like(image, dtype=np.float64)
-    
-    # Rotar el kernel 180 grados para la convolución
+    # La convolución requiere rotar el kernel 180 grados.
+    # La función _convolution con 'sum' realiza correlación, por lo que rotamos el kernel
+    # antes de pasarlo para obtener el resultado de una convolución.
     kernel_flipped = np.flipud(np.fliplr(kernel))
     
-    for i in range(image.shape[0]):
-        for j in range(image.shape[1]):
-            region = padded_image[i:i + k_h, j:j + k_w]
-            output[i, j] = np.sum(region * kernel_flipped)
-            
-    return output
+    return _convolution(padded_image, kernel_flipped, option='sum')
 
 # --- Generadores de Kernels ---
 
@@ -287,15 +307,91 @@ def get_kernel(filter_name):
 # SECCIÓN 3: PROCESAMIENTO MORFOLÓGICO (NUEVO PARA TP5)
 # =============================================================================
 
+# --- Generadores de Elementos Estructurantes (SE) ---
+
+def box(r):
+    """Crea un elemento estructurante cuadrado (box)."""
+    size = r * 2 + 1
+    return np.ones((size, size), dtype=bool)
+
+def circle(r, threshold=0.3):
+    """Crea un elemento estructurante circular."""
+    vec = np.linspace(-r, r, r * 2 + 1)
+    x, y = np.meshgrid(vec, vec)
+    se = (x**2 + y**2)**0.5 < (r + threshold)
+    return se
+
+# --- Lógica de Operaciones Morfológicas Custom ---
+
+def _morph_gray(im, se, op):
+    """Operación morfológica para imágenes en escala de grises o binarias."""
+    result = np.zeros_like(im, dtype=im.dtype)
+    offset = (np.array(se.shape) - 1) // 2
+    im_padded = np.pad(im, [(offset[0], offset[0]), (offset[1], offset[1])], 'edge')
+
+    for y, x in np.ndindex(result.shape):
+        region = im_padded[y:y + se.shape[0], x:x + se.shape[1]]
+        # Aplica la operación solo donde el elemento estructurante es True
+        pixels = region[se]
+        result[y, x] = op(pixels)
+
+    return result
+
+def _morph_multiband(im, se, op):
+    """
+    Operación morfológica para imágenes multibanda, usando el primer canal
+    como guía para la selección de píxeles.
+    """
+    result = np.zeros_like(im)
+    offset = (np.array(se.shape) - 1) // 2
+    im_padded = np.pad(im, [(offset[0], offset[0]), (offset[1], offset[1]), (0, 0)], 'edge')
+
+    for y, x in np.ndindex(result.shape[:2]):
+        region = im_padded[y:y + se.shape[0], x:x + se.shape[1]]
+        # Aplica la operación solo donde el elemento estructurante es True
+        pixels = region[se]
+        # Elige el índice del píxel basado en la operación en el primer canal (luminancia)
+        idx = op(pixels[:, 0])
+        # Copia el píxel completo (todos los canales) desde la posición elegida
+        result[y, x] = pixels[idx]
+
+    return result
+
+def _morph_color(im, se, op):
+    """
+    Realiza una operación morfológica en una imagen a color.
+    Convierte a YIQ, usa el canal Y para las decisiones morfológicas y
+    aplica el resultado a todos los canales RGB.
+    """
+    # Combina el canal de luminancia (Y) con los canales de color originales (RGB)
+    yiq_im = rgb2yiq(im)
+    # Usamos np.newaxis para que (H, W) se convierta en (H, W, 1)
+    y_channel = yiq_im[:, :, 0][..., np.newaxis]
+    # Concatenamos Y con RGB: la imagen ahora tiene 4 canales [Y, R, G, B]
+    multiband_im = np.concatenate((y_channel, im), axis=2)
+
+    # Realizamos la operación multibanda. La decisión se toma con Y, se aplica a RGB.
+    # El resultado tendrá 4 canales, así que descartamos el primero (Y).
+    result_multiband = _morph_multiband(multiband_im, se, op)
+
+    return result_multiband[:, :, 1:]
+
+
 def erosion(image, structure_size=3):
     """Aplica el filtro de erosión (mínimo local)."""
-    structure = np.ones((structure_size, structure_size))
-    return minimum_filter(image, footprint=structure)
+    se = box(structure_size // 2) # Usa un box SE por defecto
+    if image.ndim == 2:
+        return _morph_gray(image, se, np.min)
+    else:
+        return _morph_color(image, se, np.argmin)
 
 def dilatacion(image, structure_size=3):
     """Aplica el filtro de dilatación (máximo local)."""
-    structure = np.ones((structure_size, structure_size))
-    return maximum_filter(image, footprint=structure)
+    se = box(structure_size // 2)
+    if image.ndim == 2:
+        return _morph_gray(image, se, np.max)
+    else:
+        return _morph_color(image, se, np.argmax)
 
 def apertura(image, structure_size=3):
     """Aplica el filtro de apertura (erosión seguida de dilatación)."""
@@ -311,9 +407,16 @@ def borde_morfologico(image, structure_size=3):
     """Calcula el borde morfológico (dilatación - erosión)."""
     dilated = dilatacion(image, structure_size)
     eroded = erosion(image, structure_size)
-    return dilated - eroded
+    # Para imágenes a color, la resta directa funciona correctamente
+    return np.clip(dilated - eroded, 0, 1)
 
 def mediana(image, structure_size=3):
     """Aplica el filtro de mediana."""
-    return median_filter(image, size=structure_size)
+    se = box(structure_size // 2)
+    if image.ndim == 2:
+        return _morph_gray(image, se, np.median)
+    else:
+        # Para color, la operación lambda encuentra el índice del valor de luminancia mediano
+        op = lambda data: np.argsort(data)[len(data) // 2]
+        return _morph_color(image, se, op)
 

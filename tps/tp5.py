@@ -98,13 +98,10 @@ class TP5Frame(ttk.Frame):
         if not file_path: return
         try:
             raw_image = iio.imread(file_path)
-            # Trabajar siempre con escala de grises (canal Y)
-            if raw_image.ndim == 3:
-                if raw_image.shape[2] == 4: raw_image = raw_image[:, :, :3]
-                img_float = raw_image.astype(np.float32) / 255.0
-                self.image_original = mf.rgb2yiq(img_float)[:, :, 0]
-            else:
-                self.image_original = raw_image.astype(np.float32) / 255.0
+            # Convertir a flotante y manejar canal alfa si existe
+            if raw_image.ndim == 3 and raw_image.shape[2] == 4:
+                raw_image = raw_image[:, :, :3]
+            self.image_original = raw_image.astype(np.float32) / 255.0
                 
             self.image_processed = None
             self.update_image_displays()
@@ -156,8 +153,14 @@ class TP5Frame(ttk.Frame):
     def update_image_displays(self):
         def draw_image(ax, canvas, image, title):
             ax.clear()
-            if image is not None: ax.imshow(image, cmap='gray', vmin=0, vmax=1)
-            else: ax.text(0.5, 0.5, title, ha="center", va="center", fontsize=14, color="gray")
+            if image is not None:
+                # Determinar si la imagen es a color o escala de grises
+                if image.ndim == 3:
+                    ax.imshow(image) # Muestra imagen a color
+                else:
+                    ax.imshow(image, cmap='gray', vmin=0, vmax=1) # Muestra en escala de grises
+            else:
+                ax.text(0.5, 0.5, title, ha="center", va="center", fontsize=14, color="gray")
             ax.axis("off")
             canvas.draw()
             
