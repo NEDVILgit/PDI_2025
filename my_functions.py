@@ -325,7 +325,7 @@ def circle(r, threshold=0.3):
 
 def _morph_gray(im, se, op):
     """Operación morfológica para imágenes en escala de grises o binarias."""
-    result = np.zeros_like(im, dtype=im.dtype)
+    result = np.zeros_like(im)
     offset = (np.array(se.shape) - 1) // 2
     im_padded = np.pad(im, [(offset[0], offset[0]), (offset[1], offset[1])], 'edge')
 
